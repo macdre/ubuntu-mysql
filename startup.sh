@@ -34,6 +34,15 @@ else
 	fi
 fi
 
+/var/www/html/directus/bin/directus install:config -n $MYSQL_USER_DB -u $MYSQL_USER -p $MYSQL_USER_PWD
+/var/www/html/directus/bin/directus install:database
+/var/www/html/directus/bin/directus install:install -e admin@macdre.ca -p $MYSQL_USER_PWD
+
+a2enmod rewrite
+a2ensite directus
+service apache2 start $ sleep 10
+service apache2 reload $ sleep 10
+service grafana-server start $ sleep 10
 killall mysqld
 sleep 5
 echo "[i] Setting end,have fun."
