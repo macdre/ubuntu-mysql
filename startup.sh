@@ -43,7 +43,8 @@ a2ensite directus
 service apache2 start $ sleep 10
 service apache2 reload $ sleep 10
 service grafana-server start $ sleep 10
-killall mysqld
+killall mysqld $ sleep 10
+conda init $ sleep 10
 sleep 5
 echo "[i] Setting end,have fun."
 

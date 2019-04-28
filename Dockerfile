@@ -5,17 +5,22 @@ MAINTAINER macdre "ross.e.macd@gmail.com"
 RUN echo "deb http://cn.archive.ubuntu.com/ubuntu/ bionic main restricted universe multiverse" >> /etc/apt/sources.list
 RUN echo "mysql-server mysql-server/root_password password root" | debconf-set-selections
 RUN echo "mysql-server mysql-server/root_password_again password root" | debconf-set-selections
-RUN echo "deb https://packages.grafana.com/oss/deb stable main > /etc/apt/sources.list.d/grafana.list"
 
 
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && \
-	apt-get -y install curl gnupg && \
-	curl https://packages.grafana.com/gpg.key | apt-key add - && \
-	apt-get -y install mysql-server-5.7 && \
+	apt-get -y install apt-utils curl gnupg libfontconfig && \
+	curl https://packages.grafana.com/gpg.key | apt-key add -
+
+
+RUN echo "deb https://packages.grafana.com/oss/deb stable main" >> /etc/apt/sources.list
+RUN	apt-get update && \
+	apt-get -y install grafana
+
+
+RUN apt-get -y install mysql-server-5.7 && \
 	apt-get -y install git apache2 zip unzip composer && \
 	apt-get -y install php php-curl php-mysql php-mbstring php-gd php-dom && \
-	apt-get -y install libfontconfig grafana && \
 	mkdir -p /var/lib/mysql && \
 	mkdir -p /var/run/mysqld && \
 	mkdir -p /var/log/mysql && \
@@ -26,15 +31,18 @@ RUN apt-get update && \
 	usermod -d /var/lib/mysql/ mysql
 
 
-# Enable mod_rewrite in apache
+# Install and configure directus
 RUN cd /var/www/html && \
 	git clone https://github.com/directus/directus.git && \
-	chown www-data -R /var/www/html/directus
-
-
-RUN cd /var/www/html/directus && \
+	chown www-data -R /var/www/html/directus && \
+	cd /var/www/html/directus && \
 	composer install
 
+
+# Install and configure anaconda distribution
+RUN apt-get -y install wget
+RUN wget --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 https://repo.anaconda.com/archive/Anaconda3-2019.03-Linux-x86_64.sh -O ~/anaconda.sh
+RUN bash ~/anaconda.sh -b -p $HOME/anaconda
 
 # UTF-8 and bind-address
 RUN sed -i -e "$ a [client]\n\n[mysql]\n\n[mysqld]"  /etc/mysql/my.cnf && \
