@@ -7,6 +7,7 @@ MYSQL_USER_PWD=${MYSQL_USER_PWD:-""}
 MYSQL_USER_DB=${MYSQL_USER_DB:-""}
 
 echo "[i] Setting up new power user credentials."
+chown -R mysql:mysql /var/lib/mysql /var/run/mysqld
 service mysql start $ sleep 10
 
 echo "[i] Setting root new password."
@@ -40,12 +41,13 @@ fi
 
 a2enmod rewrite
 a2ensite directus
-service apache2 start $ sleep 10
-service apache2 reload $ sleep 10
-service grafana-server start $ sleep 10
-killall mysqld $ sleep 10
-conda init $ sleep 10
-sleep 5
-echo "[i] Setting end,have fun."
-
-exec "$@"
+service apache2 start
+sleep 10
+service apache2 reload
+sleep 10
+service grafana-server start 
+sleep 10
+/root/anaconda/bin/conda init
+sleep 10
+source /root/.bashrc
+/root/anaconda/bin/jupyter-notebook --no-browser --allow-root -y --ip=0.0.0.0
