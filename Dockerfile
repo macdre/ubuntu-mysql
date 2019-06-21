@@ -37,12 +37,30 @@ RUN cd /var/www/html && \
 	chown www-data -R /var/www/html/directus && \
 	cd /var/www/html/directus && \
 	composer install
+ENV PATH /var/www/html/directus/bin:$PATH
 
 
 # Install and configure anaconda distribution
-RUN apt-get -y install wget
+RUN	apt-get update
+RUN apt-get -y install wget libxrender1 unixodbc unixodbc-dev
 RUN wget --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 https://repo.anaconda.com/archive/Anaconda3-2019.03-Linux-x86_64.sh -O ~/anaconda.sh
 RUN bash ~/anaconda.sh -b -p $HOME/anaconda
+RUN rm ~/anaconda.sh
+ENV PATH /root/anaconda/bin:$PATH
+RUN conda update conda
+RUN conda update anaconda
+
+
+RUN conda create -n r_env r-essentials r-base
+ENV PATH /root/anaconda/envs/r_env/bin:$PATH
+RUN	echo "source activate r_env" > ~/.bashrc
+RUN conda install -n r_env -y r-repr r-irdisplay r-irkernel r-caret r-dplyr r-rodbc r-keras keras
+RUN R -e "IRkernel::installspec()" && \
+	mkdir -p /root/notebooks
+COPY ./jupyter_notebook_config.py /root/.jupyter/jupyter_notebook_config.py
+COPY ./climateNotebook.ipynb /root/notebooks/climateNotebook.ipynb
+COPY ./createTables.sql /root/createTables.sql
+
 
 # UTF-8 and bind-address
 RUN sed -i -e "$ a [client]\n\n[mysql]\n\n[mysqld]"  /etc/mysql/my.cnf && \
@@ -58,14 +76,20 @@ RUN chmod +x /root/startup.sh
 COPY ./directus.conf /etc/apache2/sites-available/directus.conf
 RUN echo Listen 8080 >> /etc/apache2/ports.conf
 
+RUN wget --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 https://dev.mysql.com/get/Downloads/Connector-ODBC/8.0/mysql-connector-odbc-8.0.16-linux-ubuntu18.04-x86-64bit.tar.gz -O ~/mysqlConnector.tar.gz
+RUN cd /root && \ 
+	tar xvf mysqlConnector.tar.gz && \
+	cd mysql-connector-odbc-8.0.16-linux-ubuntu18.04-x86-64bit && \
+	cp ./bin/* /usr/local/bin && \
+	cp ./lib/* /usr/local/lib
 
-COPY ./jupyter_notebook_config.py /root/.jupyter/jupyter_notebook_config.py
-
+COPY ./odbc.ini /etc/odbc.ini
 
 EXPOSE 3306
 EXPOSE 8080
 EXPOSE 3000
 EXPOSE 8888
+
 
 ENTRYPOINT ["/root/startup.sh"]
 CMD ["/usr/bin/mysqld_safe"]

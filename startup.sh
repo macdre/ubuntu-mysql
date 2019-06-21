@@ -1,5 +1,6 @@
-#! /bin/bash
+#!/bin/bash
 set -e
+source /root/.bashrc
 
 MYSQL_ROOT_PWD=${MYSQL_ROOT_PWD:-"mysql"}
 MYSQL_USER=${MYSQL_USER:-""}
@@ -35,19 +36,18 @@ else
 	fi
 fi
 
-/var/www/html/directus/bin/directus install:config -n $MYSQL_USER_DB -u $MYSQL_USER -p $MYSQL_USER_PWD
-/var/www/html/directus/bin/directus install:database
-/var/www/html/directus/bin/directus install:install -e admin@macdre.ca -p $MYSQL_USER_PWD
-
+directus install:config -n $MYSQL_USER_DB -u $MYSQL_USER -p $MYSQL_USER_PWD
+directus install:database
+directus install:install -e admin@macdre.ca -p $MYSQL_USER_PWD
 a2enmod rewrite
 a2ensite directus
 service apache2 start
-sleep 10
 service apache2 reload
-sleep 10
+
+cd /root
+wget --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 https://s3.amazonaws.com/keras-datasets/jena_climate_2009_2016.csv.zip -O ~/jena_climate.csv.zip
+unzip ~/jena_climate.csv.zip
+mysql --user=$MYSQL_USER --password=$MYSQL_USER_PWD $MYSQL_USER_DB < ./createTables.sql
+
 service grafana-server start 
-sleep 10
-/root/anaconda/bin/conda init
-sleep 10
-source /root/.bashrc
-/root/anaconda/bin/jupyter-notebook --no-browser --allow-root -y --ip=0.0.0.0
+jupyter-notebook --no-browser --allow-root -y --ip=0.0.0.0
